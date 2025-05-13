@@ -1,0 +1,11 @@
+{
+  "tract_idx": 24,
+  "tract_name": "tract_24",
+  "epochs_stage1": 200,
+  "epochs_stage2": 300,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "using_both_fa_md": true,
+  "timestamp": "2025-05-12 21:20:08",
+  "device": "cuda"
+}

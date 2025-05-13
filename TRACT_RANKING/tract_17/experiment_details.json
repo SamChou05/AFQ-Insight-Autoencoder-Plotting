@@ -1,0 +1,11 @@
+{
+  "tract_idx": 17,
+  "tract_name": "SLF_L",
+  "epochs_stage1": 200,
+  "epochs_stage2": 300,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "using_both_fa_md": true,
+  "timestamp": "2025-05-12 21:30:51",
+  "device": "cuda"
+}
