@@ -1,0 +1,13 @@
+{
+  "tract_idx": 27,
+  "tract_name": "dki_mdATR_R",
+  "modality": "dki_md",
+  "base_tract_name": "ATR_R",
+  "epochs_stage1": 400,
+  "epochs_stage2": 800,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "using_both_fa_md": true,
+  "timestamp": "2025-05-18 20:01:03",
+  "device": "cuda"
+}

@@ -1,0 +1,2 @@
+best_val_age_mae,best_epoch,model_path
+3.0311916049906245,8,non_variational_fa_tracts_experiment_results/best_combined_model.pth

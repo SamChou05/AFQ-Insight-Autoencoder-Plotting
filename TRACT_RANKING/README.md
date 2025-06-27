@@ -1,63 +1,89 @@
-# Tract Ranking Script
+# TRACT_RANKING - Individual Tract Analysis
 
-This directory contains a script to rank white matter tracts based on their predictive performance for age, using the R² (coefficient of determination) and MAE (Mean Absolute Error) metrics.
+This directory contains experiments analyzing individual brain tracts to understand their relative importance and performance in autoencoder models.
 
-## Files
+## Directory Structure
 
-- `rank_tracts_by_r2.py`: The main Python script that analyzes the training results from each tract directory and ranks them.
-- `rankings/tract_ranking_by_best_r2.csv`: Output file containing all tracts ranked by R² value (highest to lowest).
-- `rankings/tract_ranking_by_best_mae.csv`: Output file containing all tracts ranked by MAE value (lowest to highest).
-- `rankings/tract_ranking_summary.txt`: Comprehensive summary report with statistics and rankings.
-- `tract_names.json`: List of tract names corresponding to tract indices.
+### Individual Tract Folders
+- `tract_0_dki_fa/` through `tract_23_dki_fa/` - Fractional Anisotropy tracts (24 tracts)
+- `tract_24_dki_md/` through `tract_47_dki_md/` - Mean Diffusivity tracts (24 tracts)
 
-## How to Use
+Each tract folder contains:
+```
+tract_X_dki_XX/
+├── age_predictor_training_history.csv    # Age prediction training metrics
+├── site_predictor_training_history.csv   # Site prediction training metrics
+├── combined_model_training_history.csv   # Combined model training metrics
+├── vae_training_history.csv             # VAE training metrics
+├── best_age_predictor.pth               # Best age prediction model
+├── best_site_predictor.pth              # Best site prediction model
+├── best_combined_model.pth              # Best combined model
+├── best_vae.pth                         # Best VAE model
+└── experiment_details.json             # Experiment configuration
+```
 
-1. Ensure you have Python installed with the required packages:
-   - pandas
-   - json
-   - os
-   - glob
+### Summary Files
+- `summary_results.csv` - Performance metrics across all tracts
+- `tract_names.json` - Mapping of tract IDs to anatomical names
+- `tract_data_types.json` - Tract data type specifications (FA vs MD)
 
-2. Run the script from the TRACT_RANKING directory:
+### Analysis Scripts
+- `plotting_averages.py` - Generate cross-tract performance comparisons
+- `tract_training_averages.py` - Aggregate training statistics
+- `tract_result_summary.py` - Create summary reports
+
+## Data Transfer Instructions
+
+### From Experiments Repository
+
+After running tract ranking experiments:
+
+```bash
+# Copy individual tract results
+for i in {0..47}; do
+    if [ $i -le 23 ]; then
+        scp -r experiments_repo/tract_${i}_dki_fa/* plotting_repo/TRACT_RANKING/tract_${i}_dki_fa/
+    else
+        scp -r experiments_repo/tract_${i}_dki_md/* plotting_repo/TRACT_RANKING/tract_${i}_dki_md/
+    fi
+done
+
+# Copy summary files
+scp experiments_repo/summary_results.csv plotting_repo/TRACT_RANKING/
+scp experiments_repo/tract_*.json plotting_repo/TRACT_RANKING/
+```
+
+## Analysis Workflow
+
+1. **Transfer Results:** Copy all tract experiment results to appropriate folders
+2. **Run Summary Scripts:** 
+   ```bash
+   python tract_result_summary.py    # Generate overall summary
+   python tract_training_averages.py # Compute training averages
+   python plotting_averages.py       # Create comparison plots
    ```
-   python rank_tracts_by_r2.py
-   ```
+3. **Individual Analysis:** Navigate to specific tract folders for detailed analysis
 
-3. The script will:
-   - Scan all tract_* directories
-   - Extract the best R² and MAE values from each training_results.json file
-   - Rank the tracts by both metrics
-   - Save all results to the `rankings/` subfolder (created automatically if it doesn't exist)
-   - Generate a comprehensive summary report
-   - Display the top 10 tracts by both metrics in the console
+## Key Analysis Questions
 
-## Output Files
+- Which tracts are most predictive of age?
+- Which tracts are most predictive of acquisition site?
+- How does reconstruction quality vary across tracts?
+- What is the relative importance of FA vs MD tracts?
 
-The script produces three main output files in the `rankings/` subfolder:
+## Output Visualizations
 
-1. **tract_ranking_by_best_r2.csv**: CSV file with all tracts ranked by R² value in descending order.
-2. **tract_ranking_by_best_mae.csv**: CSV file with all tracts ranked by MAE value in ascending order.
-3. **tract_ranking_summary.txt**: Detailed report containing:
-   - Summary statistics (averages, best values)
-   - Top 10 rankings by both metrics
-   - Complete rankings of all tracts
-   - Timestamp of report generation
+- Cross-tract performance comparisons
+- Training curve overlays
+- Reconstruction quality heatmaps
+- Feature importance rankings
 
-## Understanding the Results
+## Tract Information
 
-- **R² Value**: Coefficient of determination, measures how well the model predicts age. Higher values are better, with 1.0 being perfect prediction.
-- **MAE Value**: Mean Absolute Error, measures the average absolute difference between predicted and actual ages in years. Lower values are better.
+### FA (Fractional Anisotropy) Tracts: 0-23
+These measure the directional coherence of water diffusion, indicating white matter integrity.
 
-## Notes
+### MD (Mean Diffusivity) Tracts: 24-47
+These measure the average rate of water diffusion, indicating tissue microstructure.
 
-- The script automatically handles errors in JSON files and missing data.
-- For tract indices that have named entries in tract_names.json, the tract name will be displayed instead of the generic "tract_XX" format.
-- The script will generate summary statistics including average metrics and the best-performing tract.
-- All output files are saved in the `rankings/` subfolder to keep the main directory clean.
-
-## Troubleshooting
-
-If you encounter issues:
-1. Make sure you're running the script from the correct directory.
-2. Check that the tract directories contain valid training_results.json files.
-3. Ensure you have proper permissions to read the files and write to the `rankings/` subfolder. 
+Refer to `tract_names.json` for the anatomical names corresponding to each tract ID. 

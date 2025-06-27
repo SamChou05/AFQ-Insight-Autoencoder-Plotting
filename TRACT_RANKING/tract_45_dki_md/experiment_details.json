@@ -1,0 +1,13 @@
+{
+  "tract_idx": 45,
+  "tract_name": "dki_mdTemporal",
+  "modality": "dki_md",
+  "base_tract_name": "Temporal",
+  "epochs_stage1": 400,
+  "epochs_stage2": 800,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "using_both_fa_md": true,
+  "timestamp": "2025-05-18 20:23:08",
+  "device": "cuda"
+}

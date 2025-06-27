@@ -1,0 +1,2 @@
+best_val_age_mae,best_epoch,model_path
+2.731817954094248,38,experiment_results/combo_ld64_drV0.0_drA0.0_drS0.0_wr20.0_wkl0.001_wa20.0_ws2.5.pth

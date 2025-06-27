@@ -480,3 +480,138 @@ def prep_first_tract_data(dataset, batch_size=32):
         first_tract_test_loader,
         first_tract_val_loader,
     )
+
+class GradReverse(torch.autograd.Function):
+    """
+    Gradient Reversal Layer: Acts as identity during forward pass,
+    reverses gradient sign scaled by alpha during backward pass.
+    """
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+        return output, None
+
+def grad_reverse(x, alpha=1.0):
+    """Helper function to apply the Gradient Reversal Layer."""
+    return GradReverse.apply(x, alpha)
+
+def prep_fa_flattened_remapped_data(dataset, batch_size=64, site_col_name='scan_site_id', age_col_name='age'):
+    """
+    Prepares PyTorch dataloaders like prep_fa_flattned_data but also remaps site IDs.
+    Selects FA tracts ONLY, flattens them per tract, and remaps site IDs.
+
+    Parameters
+    ----------
+    dataset : AFQDataset
+        The dataset to extract fa tracts from and flatten.
+    batch_size : int
+        The batch size to be used.
+    site_col_name : str
+        Name of the site column in dataset.target_cols.
+    age_col_name : str
+        Name of the age column in dataset.target_cols.
+
+    Returns
+    -------
+    tuple:
+        Original FA dataset (subsetted features),
+        New Training data loader (yields x_tract, [age, remapped_site]),
+        New Test data loader,
+        New Validation data loader.
+    """
+    # 1. Prepare FA-only dataset first (reuse existing logic)
+    # Assuming target_labels="dki_fa" is appropriate for selecting FA features
+    torch_dataset_fa, train_loader_fa, test_loader_fa, val_loader_fa = prep_fa_dataset(
+        dataset, target_labels="dki_fa", batch_size=batch_size
+    )
+
+    # 2. Get necessary info for remapping from the original dataset
+    try:
+        original_target_cols = dataset.target_cols
+        age_idx = original_target_cols.index(age_col_name)
+        site_idx = original_target_cols.index(site_col_name)
+        print(f"Remapping prep: Using age index {age_idx}, site index {site_idx} from {original_target_cols}")
+    except (AttributeError, ValueError) as e:
+        print(f"Error finding columns '{age_col_name}' or '{site_col_name}' in dataset.target_cols: {e}")
+        raise ValueError("Could not find required columns for remapping.") from e
+
+    # Define the site map {original_id: new_id}
+    site_map = {0.0: 0.0, 1.0: 1.0, 3.0: 2.0, 4.0: 3.0}
+    print(f"Using site map: {site_map}")
+
+    # 3. Define the modified AllTractsDataset with remapping
+    class AllTractsRemappedDataset(Dataset):
+        def __init__(self, original_fa_dataset, age_idx, site_idx, site_map):
+            self.original_fa_dataset = original_fa_dataset # This is the FA-only TensorDataset
+            self.sample_count = len(original_fa_dataset)
+            # Assuming original_fa_dataset[0][0] gives fa_tract data [num_tracts, num_nodes]
+            sample_x, _ = original_fa_dataset[0]
+            self.tract_count = sample_x.shape[0]
+            self.age_idx = age_idx
+            self.site_idx = site_idx
+            self.site_map = site_map
+            if not isinstance(original_fa_dataset, torch.utils.data.Dataset):
+                 raise TypeError("original_fa_dataset must be an instance of torch.utils.data.Dataset")
+
+        def __len__(self):
+            # Each sample yields tract_count individual items
+            return self.sample_count * self.tract_count
+
+        def __getitem__(self, idx):
+            # Map flattened index back to original sample and tract
+            sample_idx = idx // self.tract_count
+            tract_idx = idx % self.tract_count
+
+            # Get data from the original FA-only dataset
+            # base_dataset yields (fa_data, original_y)
+            fa_data, original_y = self.original_fa_dataset[sample_idx]
+
+            # Extract the specific tract profile
+            # Ensure it has shape [1, num_nodes] for Conv1D
+            tract_data = fa_data[tract_idx : tract_idx + 1, :].clone()
+
+            # Extract age and original site from the original y tensor
+            age = original_y[self.age_idx].item()
+            original_site = original_y[self.site_idx].item()
+
+            # Remap the site ID
+            remapped_site = self.site_map.get(original_site, -1.0) # Default to -1.0 if not found
+            if remapped_site == -1.0:
+                 print(f"Warning: Site value {original_site} at original index {sample_idx} not in map!")
+
+            # Create the new label tensor [age, remapped_site]
+            new_labels = torch.tensor([age, remapped_site], dtype=torch.float32)
+
+            return tract_data, new_labels
+
+    # 4. Create instances of the new Dataset using the base FA datasets
+    print("Creating remapped datasets...")
+    all_tracts_train_dataset = AllTractsRemappedDataset(train_loader_fa.dataset, age_idx, site_idx, site_map)
+    all_tracts_test_dataset = AllTractsRemappedDataset(test_loader_fa.dataset, age_idx, site_idx, site_map)
+    all_tracts_val_dataset = AllTractsRemappedDataset(val_loader_fa.dataset, age_idx, site_idx, site_map)
+
+    # 5. Create the final DataLoaders
+    print("Creating final DataLoaders...")
+    # Use torch.utils.data.DataLoader explicitly
+    all_tracts_train_loader = torch.utils.data.DataLoader(
+        all_tracts_train_dataset, batch_size=batch_size, shuffle=True
+    )
+    all_tracts_test_loader = torch.utils.data.DataLoader(
+        all_tracts_test_dataset, batch_size=batch_size, shuffle=False
+    )
+    all_tracts_val_loader = torch.utils.data.DataLoader(
+        all_tracts_val_dataset, batch_size=batch_size, shuffle=False
+    )
+
+    print("prep_fa_flattened_remapped_data complete.")
+    return (
+        torch_dataset_fa, # Return original subsetted FA dataset for reference
+        all_tracts_train_loader,
+        all_tracts_test_loader,
+        all_tracts_val_loader,
+    )

@@ -1,0 +1,13 @@
+{
+  "tract_idx": 38,
+  "tract_name": "dki_mdOccipital",
+  "modality": "dki_md",
+  "base_tract_name": "Occipital",
+  "epochs_stage1": 400,
+  "epochs_stage2": 800,
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "using_both_fa_md": true,
+  "timestamp": "2025-05-18 19:57:15",
+  "device": "cuda"
+}
