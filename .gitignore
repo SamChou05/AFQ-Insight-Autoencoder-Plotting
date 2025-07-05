@@ -1,0 +1,96 @@
+# AFQ-Insight-Autoencoder-Plotting .gitignore
+# This file ignores all temporary/transferred content while keeping analysis code
+
+# CSV Files - Training metrics and performance data
+csv_files/
+*.csv
+**/csv_files/**
+
+# Model Weights - PyTorch model files
+model_weights/
+*.pth
+**/model_weights/**
+
+# Generated Plots and Visualizations
+plots/
+**/plots/**
+*.png
+*.jpg
+
+# Confusion Matrices and Classification Results
+confusion_matrix/
+**/confusion_matrix/**
+
+# Heatmaps
+heatmaps/
+**/heatmaps/**
+
+# Summaries 
+summaries/
+**/summaries/**
+
+# Log Files from Experiments
+*.out
+*.log
+*.err
+slurm-*.out
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Environments
+.env
+.venv
+env/
+
+# Individual tract directories with results
+TRACT_RANKING/tract_*/
+!TRACT_RANKING/tract_*/.gitkeep
+
+# Training averages data (generated)
+training_averages/*.csv
+training_averages/plots/
+
+# Results summary data (generated)
+results_summary/*.csv
+
+# Any experiment-specific log files
+experiment_*.log
+training_*.log
+
+# =============================================================================
+# EXCEPTIONS - Files to KEEP despite patterns above
+# =============================================================================
+
+# Keep README files everywhere
+!README.md
+!**/README.md
+
+# Keep analysis notebooks and scripts
+!*.ipynb
+!*.py
+
+# Keep configuration templates and examples
+!**/example_*.csv
+!**/template_*.json
+!config_template.*
+
+# Keep directory structure files
+!.gitkeep
+!**/.gitkeep
+
+# Keep documentation
+!*.md
+!docs/
+
+# Keep specific configuration files that are part of the repo
+!tract_names.json
+!tract_data_types.json
+!TRACT_RANKING/tract_names.json
+!TRACT_RANKING/tract_data_types.json
+
+# Keep requirements and setup files
+!requirements.txt
+!setup.py
+!environment.yml
