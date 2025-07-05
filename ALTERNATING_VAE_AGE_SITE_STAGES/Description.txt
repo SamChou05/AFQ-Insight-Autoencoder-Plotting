@@ -1,0 +1,45 @@
+# ALTERNATING_VAE_AGE_SITE_STAGES Experiment Results
+
+This directory contains results from the alternating VAE age/site prediction experiments run on the Hyak cluster.
+
+Meant for results from this batch script: run_notebook_ae_age_site_stages_fa_tract.sbatch
+
+## Data Transfer Instructions
+
+To populate this directory with fresh experimental results from Hyak, use the following scp commands:
+
+### 1. Transfer Model Weights
+```bash
+scp samobear@klone.hyak.uw.edu:/mmfs1/gscratch/nrdg/samchou/AFQ-Insight-Autoencoder-Experiments/alternating_fa_tracts_experiment_results/*.pth \
+/Users/samchou/AFQ-Insight-Autoencoder-Plotting/ALTERNATING_VAE_AGE_SITE_STAGES/model_weights
+```
+
+### 2. Transfer Metrics and Summary Files
+```bash
+scp samobear@klone.hyak.uw.edu:/mmfs1/gscratch/nrdg/samchou/AFQ-Insight-Autoencoder-Experiments/alternating_fa_tracts_experiment_results/*summary* \
+/Users/samchou/AFQ-Insight-Autoencoder-Plotting/ALTERNATING_VAE_AGE_SITE_STAGES/csv_files
+
+scp samobear@klone.hyak.uw.edu:/mmfs1/gscratch/nrdg/samchou/AFQ-Insight-Autoencoder-Experiments/alternating_fa_tracts_experiment_results/*metrics* \
+/Users/samchou/AFQ-Insight-Autoencoder-Plotting/ALTERNATING_VAE_AGE_SITE_STAGES/csv_files
+```
+
+### 3. Transfer Confusion Matrix Data
+```bash
+scp -r samobear@klone.hyak.uw.edu:/mmfs1/gscratch/nrdg/samchou/AFQ-Insight-Autoencoder-Experiments/alternating_fa_tracts_experiment_results/site_predictions \
+/Users/samchou/AFQ-Insight-Autoencoder-Plotting/ALTERNATING_VAE_AGE_SITE_STAGES/confusion_matrix/
+
+scp -r samobear@klone.hyak.uw.edu:/mmfs1/gscratch/nrdg/samchou/AFQ-Insight-Autoencoder-Experiments/alternating_fa_tracts_experiment_results/confusion_matrices \
+/Users/samchou/AFQ-Insight-Autoencoder-Plotting/ALTERNATING_VAE_AGE_SITE_STAGES/confusion_matrix/
+```
+
+## Directory Structure
+- `csv_files/` - Training metrics and summary files (.csv)
+- `model_weights/` - Trained PyTorch models (.pth files)
+- `confusion_matrix/` - Classification analysis results
+  - `confusion_matrices/` - Confusion matrix data and visualizations
+  - `site_predictions/` - Site prediction results and analysis
+- `plots/` - Generated visualizations (created by plotting scripts)
+- `summaries/` - Experiment summaries (transferred from Hyak)
+
+## Usage
+After transferring data, run the plotting notebooks (`plot.ipynb`, `reconstructions_comb.ipynb`, `vae_recon.ipynb`) to generate visualizations and analysis plots.

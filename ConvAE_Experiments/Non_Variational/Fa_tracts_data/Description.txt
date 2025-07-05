@@ -1,0 +1,7 @@
+Meant for plotting, visualizing results, and reconstructions from the 
+batch scripts from the corresponding directory in:
+https://github.com/SamChou05/AFQ-Insight-Autoencoder-Experiments
+
+When running on hyak cluter, use scp commands to obtain results to place them 
+into the corrresponding folders in this directory and run the jupyter notebooks 
+to create plots and visualizations of reconstructed data.
