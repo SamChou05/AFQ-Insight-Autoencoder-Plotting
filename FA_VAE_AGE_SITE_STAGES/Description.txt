@@ -1,0 +1,6 @@
+Meant for plotting, visualizing results, and reconstructions from the 
+batch scripts from the batch script run_notebook_vae_age_site_stages_fa_tract
+
+When running on hyak cluter, use scp commands to obtain results to place them 
+into the corrresponding folders in this directory and run the jupyter notebooks 
+to create plots and visualizations of reconstructed data.
