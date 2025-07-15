@@ -4,67 +4,85 @@ import torch.nn.functional as F
 
 
 class Conv1DVariationalEncoder_fa(nn.Module):
-    def __init__(self, latent_dims=20, dropout=0.2):
+    def __init__(self, latent_dims=20, dropout=0.2, input_length=50):
         super().__init__()
         self.conv1 = nn.Conv1d(1, 16, kernel_size=5, stride=2, padding=2)
-        self.conv2 = nn.Conv1d(16, 32, kernel_size=4, stride=2, padding=2)
+        self.conv2_50 = nn.Conv1d(16, 32, kernel_size=4, stride=2, padding=2)
+        self.conv2_100 = nn.Conv1d(16, 32, kernel_size=5, stride=2, padding=2)
         self.conv3 = nn.Conv1d(32, 64, kernel_size=5, stride=2, padding=2)
-        
-        # Instead of directly mapping to latent space, we'll produce two outputs:
-        # mean and log variance (each of size latent_dims)
-        # self.conv4_mean = nn.Conv1d(64, latent_dims, kernel_size=5, stride=2, padding=2)
-        # self.conv4_logvar = nn.Conv1d(64, latent_dims, kernel_size=5, stride=2, padding=2)
+        # self.conv4 = nn.Conv1d(64, 128, kernel_size=5, stride=2, padding=2)
 
-        self.fc_mean = nn.Linear(64*7, latent_dims)
-        self.fc_logvar = nn.Linear(64*7, latent_dims)
+        # Calculate the output size dynamically
+        self._dummy_input = torch.zeros(1, 1, input_length)
+        self._conv_output = self._get_conv_output_shape(self._dummy_input)
+        self.flattened_size = self._conv_output[1] * self._conv_output[2]
+        
+        self.fc_mean = nn.Linear(self.flattened_size, latent_dims)
+        self.fc_logvar = nn.Linear(self.flattened_size, latent_dims)
         
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(dropout)
         self.relu = nn.ReLU()
         
-    def forward(self, x):
-        # x = torch.flatten(x, 1)
-        x = F.relu(self.conv1(x)) # [64, 16, 25]
-        x = self.dropout(x)
-        x = F.relu(self.conv2(x)) # [64, 32, 13]
-        x = self.dropout(x)
-        x = F.relu(self.conv3(x)) # [64, 64, 7]
-        x = self.dropout(x)
+    def _get_conv_output_shape(self, x):
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2_100(x))
+        x = F.relu(self.conv3(x))
+        return x.shape
         
-        # mean = self.conv4_mean(x)
-        # logvar = self.conv4_logvar(x)
-        x = self.flatten(x) # [64, 64*7]
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = self.dropout(x)
+        # x = F.relu(self.conv2_50(x))
+        x = F.relu(self.conv2_100(x))
+        x = self.dropout(x)
+        x = F.relu(self.conv3(x))
+        x = self.dropout(x)
+        # x = F.relu(self.conv4(x))
+        x = self.dropout(x)
+        x = self.flatten(x)
         mean = self.fc_mean(x)
         logvar = self.fc_logvar(x)    
 
         return mean, logvar
 
+# Variational decoder for reconstructing flattened FA tract data from latent vectors
+# Uses transposed convolutions to upsample latent code back to original sequence length
+# Paired with Conv1DVariationalEncoder_fa to form complete VAE
 class Conv1DVariationalDecoder_fa(nn.Module):
-    def __init__(self, latent_dims=20):
+    def __init__(self, latent_dims=20, conv_output_shape=None):
         super().__init__()
-        self.fc = nn.Linear(latent_dims, 64 * 7)
-        # self.deconv1 = nn.ConvTranspose1d(latent_dims, 64, kernel_size=5, stride=2, padding=2, output_padding=0)
-        self.deconv2 = nn.ConvTranspose1d(64, 32, kernel_size=5, stride=2, padding=2, output_padding=0)
-        self.deconv3 = nn.ConvTranspose1d(32, 16, kernel_size=4, stride=2, padding=2, output_padding=1)
+        # Store the expected shape of the conv features
+        self.conv_channels = conv_output_shape[1]  # 64
+        self.conv_length = conv_output_shape[2]    # 7 for input_length=50, 14 for input_length=100
+        self.flattened_size = self.conv_channels * self.conv_length
+        
+        self.fc = nn.Linear(latent_dims, 64 * 13)
+        self.deconv2 = nn.ConvTranspose1d(self.conv_channels, 32, kernel_size=5, stride=2, padding=2, output_padding=0)
+        self.deconv3_100 = nn.ConvTranspose1d(32, 16, kernel_size=5, stride=2, padding=2, output_padding=1)
+        self.deconv3_50 = nn.ConvTranspose1d(32, 16, kernel_size=4, stride=2, padding=2, output_padding=1)
         self.deconv4 = nn.ConvTranspose1d(16, 1, kernel_size=5, stride=2, padding=2, output_padding=1)
         self.relu = nn.ReLU()
         
     def forward(self, x):
         batch_size = x.size(0)
         x = self.fc(x)
-        x = x.view(batch_size, 64, 7)
-        # x = F.relu(self.deconv1(x))
+        x = x.view(batch_size, 64, 13)
         x = F.relu(self.deconv2(x))
-        x = F.relu(self.deconv3(x))
+        # x = F.relu(self.deconv3_50(x))
+        x = F.relu(self.deconv3_100(x))
         x = self.deconv4(x)
         return x
-        # return x.view(batch_size, -1)
 
+# Complete variational autoencoder for flattened FA tract data
+# Combines encoder and decoder with reparameterization trick for stochastic latent sampling
+# Designed for single-channel 1D sequences representing tract profiles
 class Conv1DVariationalAutoencoder_fa(nn.Module):
-    def __init__(self, latent_dims=20, dropout=0.0):
+    def __init__(self, latent_dims=20, dropout=0.0, input_length=50):
         super().__init__()
-        self.encoder = Conv1DVariationalEncoder_fa(latent_dims, dropout=dropout)
-        self.decoder = Conv1DVariationalDecoder_fa(latent_dims)
+        self.encoder = Conv1DVariationalEncoder_fa(latent_dims, dropout=dropout, input_length=input_length)
+        # Pass the shape information from encoder to decoder
+        self.decoder = Conv1DVariationalDecoder_fa(latent_dims, self.encoder._conv_output)
         self.latent_dims = latent_dims
         
     def reparameterize(self, mean, logvar):
@@ -75,21 +93,8 @@ class Conv1DVariationalAutoencoder_fa(nn.Module):
     
     def forward(self, x):
         mean, logvar = self.encoder(x)
-        
         z = self.reparameterize(mean, logvar)
-        
         x_prime = self.decoder(z)
-        
-        return x_prime, mean, logvar
-    
-    
-    def forward(self, x):
-        mean, logvar = self.encoder(x)
-        
-        z = self.reparameterize(mean, logvar)
-        
-        x_prime = self.decoder(z)
-        
         return x_prime, mean, logvar
     
 class Conv1DEncoder_fa(nn.Module):

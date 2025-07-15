@@ -1,0 +1,2 @@
+best_val_age_mae,best_epoch,model_path
+inf,0,first_tract_experiment_results/best_combined_model.pth

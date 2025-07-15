@@ -545,7 +545,7 @@ def prep_fa_flattened_remapped_data(dataset, batch_size=64, site_col_name='scan_
     print(f"Using site map: {site_map}")
 
     # 3. Define the modified AllTractsDataset with remapping
-    class AllTractsRemappedDataset(Dataset):
+    class AllTractsRemappedDataset(torch.utils.data.Dataset):
         def __init__(self, original_fa_dataset, age_idx, site_idx, site_map):
             self.original_fa_dataset = original_fa_dataset # This is the FA-only TensorDataset
             self.sample_count = len(original_fa_dataset)
